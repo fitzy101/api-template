@@ -8,7 +8,8 @@ cd $GOPATH/src/github.com/fitzy101/api-template
 docker build -t api-template .
 ```
 
-You can then run the API using the command:
+You can then run the API using the command (update the database creds/info 
+accordingly):
 ```sh
 docker run -p 8090:3000 -d \
 --env DB_USERNAME=root \
