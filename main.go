@@ -1,36 +1,30 @@
 package main
 
 import (
-	// Local packages
-	"github.com/fitzy101/api-template/config"
-	"github.com/fitzy101/api-template/controller"
-	"github.com/fitzy101/api-template/logic"
+	"fmt"
+	"net/http"
+	"time"
 
-	// External packages
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 
-	// Native packages
-	"fmt"
-	"net/http"
-	"time"
+	"github.com/fitzy101/api-template/config"
+	"github.com/fitzy101/api-template/controller"
+	"github.com/fitzy101/api-template/logic"
 )
 
 func main() {
 	// Connect to the database firstly.
 	db := connDB()
 
-	// Register the database with the controller.
-	controller.SetDB(db)
-
 	// Create the logic struct to be passed to the controller.
-	ls := logic.Lgc{}
+	var ls logic.Lgc
 
 	// We can boot the api now after setting it up, and accept requests.
 	server := &http.Server{
 		Addr:           ":3000",
-		Handler:        NewRouter(db, ls),
+		Handler:        newRouter(db, &ls),
 		ReadTimeout:    30 * time.Second,
 		WriteTimeout:   30 * time.Second,
 		MaxHeaderBytes: 1 << 20, // Equivalent to 1 mb.
@@ -48,19 +42,20 @@ func main() {
 */
 func connDB() *sqlx.DB {
 	fmt.Println("Attempting to connect to DB")
-	u := config.DB_USERNAME()
-	url := fmt.Sprintf("%v:%v", config.DB_HOST(), config.DB_PORT())
-	p := config.DB_PASSWORD()
-	n := config.DB_SCHEMA()
+	u := config.DBUsername()
+	pw := config.DBPassword()
+	n := config.DBSchema()
+	h := config.DBHost()
+	p := config.DBPort()
 
 	// The API should not boot if the config values were not found.
-	if u == "" || url == "" || n == "" || p == "" {
+	if u == "" || url == "" || n == "" || p == "" || pw == "" {
 		panic("Database config values not found.")
 	}
 
 	// Connect to the database and ping, confirming connection was made.
 	// Panic if the connection was not successful.
-	connString := fmt.Sprintf("%s:%s@tcp(%s)/%s", u, p, url, n)
+	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", u, h, p, n)
 	db, err := sqlx.Connect("mysql", connString)
 	if err != nil {
 		panic(err)
@@ -72,11 +67,11 @@ func connDB() *sqlx.DB {
 }
 
 /*
-  NewRouter is the function that handles all of the routing for the
+  newRouter is the function that handles all of the routing for the
   API. Each request is authenticated before serving.
   This returns the http handler for the http server.
 */
-func NewRouter(db *sqlx.DB, ls logic.Lgc) http.Handler {
+func newRouter(db *sqlx.DB, ls *logic.Lgc) http.Handler {
 	// Create the handler function to serve the requests, and return
 	// to the server.
 	return mware(db, ls)
@@ -86,7 +81,7 @@ func NewRouter(db *sqlx.DB, ls logic.Lgc) http.Handler {
 // of authentication. Depending on your auth system this will obviously differ.
 // This will eventually pass the request to the respective router for
 // the api/spa after determining where the request came from.
-func mware(db logic.DB, ls logic.Lgc) http.Handler {
+func mware(db logic.DB, ls *logic.Lgc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// We need to set the JSON content type otherwise
@@ -124,7 +119,7 @@ func mware(db logic.DB, ls logic.Lgc) http.Handler {
 }
 
 // auth is a router that assumes the current user is authenticated.
-func auth(db logic.DB, ls logic.Lgc) http.Handler {
+func auth(db logic.DB, ls *logic.Lgc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// The request is ready to be served.
@@ -144,7 +139,7 @@ func notFound() http.Handler {
 }
 
 // exceptions is the handler for the list of excepted, unauthorised routes.
-func exceptions(db logic.DB, ls logic.Lgc) http.Handler {
+func exceptions(db logic.DB, ls *logic.Lgc) http.Handler {
 	r := mux.NewRouter()
 	r.NotFoundHandler = notFound()
 	r.Handle("/status", controller.StatusCheck())
@@ -152,7 +147,7 @@ func exceptions(db logic.DB, ls logic.Lgc) http.Handler {
 }
 
 // router creates a mux that handles all of the incoming authenticated requests.
-func router(db logic.DB, ls logic.Lgc) http.Handler {
+func router(db logic.DB, ls *logic.Lgc) http.Handler {
 	r := mux.NewRouter()
 	r.NotFoundHandler = notFound()
 	return r

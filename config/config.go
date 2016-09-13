@@ -4,22 +4,22 @@ import (
 	"os"
 )
 
-func DB_HOST() string {
+func DBHost() string {
 	return os.Getenv("DB_HOST")
 }
 
-func DB_PASSWORD() string {
+func DBPassword() string {
 	return os.Getenv("DB_PASSWORD")
 }
 
-func DB_SCHEMA() string {
+func DBSchema() string {
 	return os.Getenv("DB_SCHEMA")
 }
 
-func DB_PORT() string {
+func DBPort() string {
 	return os.Getenv("DB_PORT")
 }
 
-func DB_USERNAME() string {
+func DBUsername() string {
 	return os.Getenv("DB_USERNAME")
 }
