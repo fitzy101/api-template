@@ -49,7 +49,7 @@ func connDB() *sqlx.DB {
 	p := config.DBPort()
 
 	// The API should not boot if the config values were not found.
-	if u == "" || url == "" || n == "" || p == "" || pw == "" {
+	if u == "" || h == "" || n == "" || p == "" || pw == "" {
 		panic("Database config values not found.")
 	}
 
